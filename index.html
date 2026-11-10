@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desmos LaTeX → โค้ด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0F1720; --panel:#17222E; --panel-2:#1D2A38; --line:#2A3B4D;
+    --ink:#DCE7F1; --muted:#7D93A8;
+    --pen-1:#E8A33D; --pen-2:#4FD1C5; --pen-3:#B49BFF; --err:#FF7B72;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --thai:'IBM Plex Sans Thai',system-ui,sans-serif;
+    --disp:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--thai);
+       font-weight:300;line-height:1.6;padding:32px 20px 64px}
+  .wrap{max-width:1280px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px;
+         display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px}
+  h1{font-family:var(--disp);font-weight:700;font-size:26px;letter-spacing:-.02em;margin:0}
+  .flow{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
+  .flow b{font-weight:500}
+  .flow .a{color:var(--pen-1)} .flow .b{color:var(--pen-2)} .flow .c{color:var(--pen-3)}
+
+  .bar{display:flex;align-items:baseline;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+  .src-label{font-family:var(--mono);font-size:11px;color:var(--muted);
+             letter-spacing:.12em;text-transform:uppercase}
+  .hint{font-size:12.5px;color:var(--muted)}
+  .toggle{margin-left:auto;font-family:var(--mono);font-size:11px;background:transparent;
+    color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:4px 10px;cursor:pointer}
+  .toggle:hover{color:var(--pen-1);border-color:var(--pen-1)}
+
+  textarea{width:100%;min-height:150px;resize:vertical;background:var(--panel);
+           color:var(--ink);border:1px solid var(--line);border-radius:6px;
+           font-family:var(--mono);font-size:14.5px;line-height:1.9;padding:14px 16px;outline:none;
+           white-space:pre;overflow-wrap:normal;overflow-x:auto}
+  textarea:focus{border-color:var(--pen-1)}
+
+  /* ---- สมการที่เรนเดอร์แล้ว ---- */
+  .preview{margin-top:10px;background:#0B1219;border:1px solid var(--line);
+           border-radius:6px;padding:6px 0;overflow-x:auto}
+  .row{display:flex;align-items:flex-start;gap:14px;padding:7px 16px;border-left:2px solid transparent}
+  .row + .row{border-top:1px solid rgba(42,59,77,.5)}
+  .row .ln{font-family:var(--mono);font-size:11px;color:var(--muted);
+           min-width:22px;text-align:right;padding-top:4px;flex:none}
+  .row .math{color:var(--ink);font-size:17px;overflow-x:auto;max-width:100%}
+  .row.bad{border-left-color:var(--err)}
+  .row.bad .ln{color:var(--err)}
+  .row .raw{font-family:var(--mono);font-size:13.5px;white-space:pre-wrap;word-break:break-all}
+  .row .raw span{border-radius:3px}
+  .t-number{color:#7EE787} .t-ident{color:var(--ink)} .t-command{color:var(--pen-1)}
+  .t-op{color:#FF9EC4} .t-punct{color:var(--muted)} .t-ellipsis{color:var(--pen-2)}
+  .raw span.hot{background:rgba(232,163,61,.28);box-shadow:0 0 0 2px rgba(232,163,61,.28)}
+
+  .exgroup{margin-top:16px}
+  .exgroup h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+              text-transform:uppercase;color:var(--muted);margin:0 0 7px;font-weight:400}
+  .examples{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+  .examples button{font-family:var(--mono);font-size:12px;background:transparent;
+    color:var(--muted);border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;cursor:pointer;transition:.15s}
+  .examples button:hover{border-color:var(--pen-1);color:var(--pen-1)}
+  .examples button:focus-visible{outline:2px solid var(--pen-1);outline-offset:2px}
+
+  .stages{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+          align-items:start;margin-top:20px}
+  @media(max-width:980px){.stages{grid-template-columns:1fr}}
+
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .stage>h2{margin:0;padding:12px 16px;display:flex;align-items:center;gap:10px;
+    background:var(--panel-2);border-bottom:1px solid var(--line);
+    font-family:var(--disp);font-size:14px;font-weight:500}
+  .stage>h2 .n{font-family:var(--mono);font-size:11px;font-weight:600;width:20px;height:20px;
+    border-radius:4px;display:grid;place-items:center;color:#0F1720}
+  .stage>h2 .sub{margin-left:auto;font-family:var(--thai);font-weight:300;
+                 font-size:12px;color:var(--muted)}
+  .s1>h2 .n{background:var(--pen-1)} .s2>h2 .n{background:var(--pen-2)} .s3>h2 .n{background:var(--pen-3)}
+  .s1{border-top:2px solid var(--pen-1)} .s2{border-top:2px solid var(--pen-2)} .s3{border-top:2px solid var(--pen-3)}
+
+  .body{padding:14px 16px;max-height:520px;overflow:auto}
+  .lineTag{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);
+           margin:16px 0 7px;padding-bottom:4px;border-bottom:1px dashed var(--line)}
+  .lineTag:first-child{margin-top:0}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);
+        border-radius:5px;padding:3px 8px;background:#0B1219;transition:.12s}
+  .chip small{color:var(--muted);font-size:10px;margin-right:6px}
+  .chip:hover{border-color:var(--pen-1);transform:translateY(-1px)}
+
+  pre{margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.75;
+      white-space:pre;color:var(--pen-2)}
+  pre.code{color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  .import{font-family:var(--mono);font-size:11.5px;color:var(--muted);
+          margin:0 0 10px;padding-bottom:9px;border-bottom:1px dashed var(--line)}
+  .note{font-size:12px;color:var(--pen-2);margin:0 0 12px}
+
+  .tabs{display:flex;gap:6px;padding:10px 16px 0;align-items:center}
+  .tabs button{font-family:var(--mono);font-size:12px;background:transparent;
+    color:var(--muted);border:1px solid var(--line);border-bottom:none;
+    border-radius:5px 5px 0 0;padding:5px 12px;cursor:pointer}
+  .tabs button[aria-selected=true]{color:var(--pen-3);border-color:var(--pen-3)}
+  .copy{font-family:var(--mono);font-size:11px;margin-left:auto;background:transparent;
+    color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:4px 10px;cursor:pointer}
+  .copy:hover{color:var(--pen-3);border-color:var(--pen-3)}
+
+  .errbox{font-family:var(--mono);font-size:12.5px;color:var(--err);
+    background:rgba(255,123,114,.08);border:1px solid rgba(255,123,114,.3);
+    border-radius:6px;padding:10px 14px;margin-top:14px}
+  .errbox div + div{margin-top:6px}
+
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+         font-size:13px;color:var(--muted)}
+  footer b{color:var(--ink);font-weight:500}
+  code.k{font-family:var(--mono);color:var(--pen-1);font-size:12.5px}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Desmos LaTeX → โค้ด</h1>
+    <div class="flow">LaTeX <b>→</b> <b class="a">tokens</b> <b>→</b> <b class="b">AST</b> <b>→</b> <b class="c">Python / JS</b></div>
+  </header>
+
+  <div class="bar">
+    <span class="src-label">สมการจาก Desmos</span>
+    <span class="hint">หนึ่งบรรทัดต่อหนึ่งสมการ วางมาทั้งกราฟได้เลย</span>
+    <button class="toggle" id="toggle">ดู LaTeX ดิบ</button>
+  </div>
+
+  <textarea id="src" spellcheck="false">a=2
+b=-1
+g\left(x\right)=ax^{2}+b
+L=\left[1...5\right]
+S=\operatorname{total}\left(L\right)
+y=g\left(3\right)+S
+C=\left[\left(\cos t,\sin t\right)\operatorname{for}t=\left[0,0.2,...,6.2\right]\right]</textarea>
+
+  <div class="preview" id="preview"></div>
+  <div id="errors"></div>
+  <div id="examples"></div>
+
+  <div class="stages">
+    <section class="stage s1">
+      <h2><span class="n">1</span> Tokenizer <span class="sub">ตัดเป็นชิ้น</span></h2>
+      <div class="body" id="tokens"></div>
+    </section>
+    <section class="stage s2">
+      <h2><span class="n">2</span> Parser <span class="sub">ประกอบเป็นต้นไม้</span></h2>
+      <div class="body" id="trees"></div>
+    </section>
+    <section class="stage s3">
+      <h2><span class="n">3</span> Emitter <span class="sub">พ่นเป็นโค้ด</span></h2>
+      <div class="tabs">
+        <button id="tab-py" aria-selected="true">Python</button>
+        <button id="tab-js" aria-selected="false">JavaScript</button>
+        <button class="copy" id="copy">คัดลอกทั้งหมด</button>
+      </div>
+      <div class="body">
+        <p class="import" id="import"></p>
+        <p class="note" id="note"></p>
+        <pre class="code" id="code"></pre>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <b>เรียงลำดับให้อัตโนมัติ</b> — Desmos เขียนสลับบรรทัดได้เพราะทุกอย่างเป็นจริงพร้อมกัน
+    แต่ Python ต้องนิยามก่อนใช้ ตัวคอมไพเลอร์เลยไล่ว่าบรรทัดไหนพึ่งบรรทัดไหน แล้วจัดลำดับใหม่ให้
+    <br><br>
+    <b>รองรับ</b> — เลขคณิต · <code class="k">\frac \sqrt</code> · ตรีโกณ ·
+    <code class="k">\ln \log_b \exp</code> · <code class="k">|x|</code> · ตัวห้อย · อักษรกรีก ·
+    คู่อันดับและ <code class="k">.x .y</code> · ลิสต์ · ช่วง · ดัชนีและตัวกรอง ·
+    <code class="k">for</code> · <code class="k">with</code> · ฟังก์ชันเป็นช่วง ·
+    โซ่เปรียบเทียบ · <code class="k">\sum \prod \int</code> · อนุพันธ์ · แฟกทอเรียล ·
+    ฟังก์ชันลิสต์ · ฟังก์ชันหลายตัวแปร · แอ็กชัน <code class="k">\to</code>
+    <br><br>
+    <b>ยังไม่รองรับ</b> — regression <code class="k">~</code> · ticker · เมทริกซ์ · จำนวนเชิงซ้อน
+    <br><br>
+    วาง <code class="k">ds_runtime.py</code> / <code class="k">ds-runtime.js</code> ไว้ข้าง ๆ แล้วรันได้เลย
+  </footer>
+</div>
+
+<script src="latex-compiler.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const src=$('src'), preview=$('preview'), errBox=$('errors');
+  const tokensEl=$('tokens'), treesEl=$('trees'), codeEl=$('code');
+  const importEl=$('import'), noteEl=$('note');
+  let target='python', rawMode=false, last=null;
+
+  const GROUPS = [
+    ['ตัวอย่างหลายบรรทัด', [
+      ['วงกลมพารามิเตอร์',
+        'r=2\nC=\\left[\\left(r\\cos t,r\\sin t\\right)\\operatorname{for}t=\\left[0,0.2,...,6.2\\right]\\right]'],
+      ['สถิติจากลิสต์',
+        'L=\\left[3,7,1,9,4\\right]\nm=\\operatorname{mean}\\left(L\\right)\ns=\\operatorname{stdev}\\left(L\\right)\nZ=\\left[\\frac{v-m}{s}\\operatorname{for}v=L\\right]'],
+      ['ฟิสิกส์โพรเจกไทล์',
+        'v_{0}=20\n\\theta=0.8\ng=9.8\nx\\left(t\\right)=v_{0}t\\cos\\theta\ny\\left(t\\right)=v_{0}t\\sin\\theta-\\frac{1}{2}gt^{2}\nP=\\left[\\left(x\\left(t\\right),y\\left(t\\right)\\right)\\operatorname{for}t=\\left[0,0.1,...,3\\right]\\right]'],
+      ['สลับลำดับให้ดู',
+        'y=f\\left(3\\right)\nf\\left(x\\right)=kx+c\nk=2\nc=5']
+    ]],
+    ['ทีละบรรทัด', [
+      ['คู่อันดับ','\\left(3,4\\right)'],
+      ['ช่วงมีขั้น','\\left[1,3,...,11\\right]'],
+      ['ตัวกรอง','L\\left[L>2\\right]'],
+      ['เงื่อนไข','\\left\\{x>0:1,x<0:-1,0\\right\\}'],
+      ['โซ่เปรียบเทียบ','\\left\\{0<x<5:x^{2}\\right\\}'],
+      ['ผลรวม','\\sum_{n=1}^{10}n^{2}'],
+      ['อินทิกรัล','\\int_{0}^{1}x^{2}dx'],
+      ['อนุพันธ์','\\frac{d}{dx}x^{3}'],
+      ['with','a+b\\operatorname{with}a=1,b=2']
+    ]]
+  ];
+
+  const box = $('examples');
+  GROUPS.forEach(([title, items]) => {
+    const g = document.createElement('div'); g.className='exgroup';
+    const h = document.createElement('h3'); h.textContent=title; g.appendChild(h);
+    const row = document.createElement('div'); row.className='examples';
+    items.forEach(([label, code]) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.onclick = () => { src.value = code; run(); };
+      row.appendChild(b);
+    });
+    g.appendChild(row); box.appendChild(g);
+  });
+
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  function rawHTML(text, tokens, uid){
+    let html='', cursor=0;
+    (tokens||[]).forEach((t,i)=>{
+      if(t.type==='eof') return;
+      html += esc(text.slice(cursor,t.start));
+      html += `<span class="t-${t.type}" data-k="${uid}-${i}">${esc(text.slice(t.start,t.end))}</span>`;
+      cursor = t.end;
+    });
+    html += esc(text.slice(cursor));
+    return html;
+  }
+
+  function renderPreview(prog){
+    preview.innerHTML = '';
+    if(!prog.units.length){
+      preview.innerHTML = '<div class="row"><span class="ln">—</span><span class="math" style="color:#7D93A8">ยังไม่มีสมการ</span></div>';
+      return;
+    }
+    prog.units.forEach((u, ui) => {
+      const row = document.createElement('div');
+      row.className = 'row' + (u.ok ? '' : ' bad');
+      const ln = document.createElement('span');
+      ln.className='ln'; ln.textContent = u.line;
+      const m = document.createElement('span');
+
+      if(rawMode){
+        m.className='math raw';
+        m.innerHTML = rawHTML(u.src, u.tokens, ui);
+      } else {
+        m.className='math';
+        if(window.katex){
+          try{ m.innerHTML = katex.renderToString(u.src, {throwOnError:false, output:'html'}); }
+          catch(e){ m.textContent = u.src; }
+        } else m.textContent = u.src;
+      }
+      row.appendChild(ln); row.appendChild(m);
+      preview.appendChild(row);
+    });
+  }
+
+  function run(){
+    const text = src.value;
+    const prog = LatexCompiler.compileProgram(text, target);
+    last = prog;
+
+    renderPreview(prog);
+
+    // ข้อผิดพลาด
+    const bad = prog.units.filter(u => !u.ok);
+    errBox.innerHTML = bad.length
+      ? '<div class="errbox">' + bad.map(u =>
+          `<div>บรรทัด ${u.line}: ${esc(u.error.message)}</div>`).join('') + '</div>'
+      : '';
+
+    // tokens
+    tokensEl.innerHTML = '';
+    prog.units.forEach((u, ui) => {
+      const tag = document.createElement('div');
+      tag.className='lineTag'; tag.textContent = `บรรทัด ${u.line}`;
+      tokensEl.appendChild(tag);
+      const chips = document.createElement('div'); chips.className='chips';
+      (u.tokens||[]).forEach((t,i)=>{
+        if(t.type==='eof') return;
+        const c = document.createElement('div');
+        c.className='chip';
+        c.innerHTML = `<small>${t.type}</small>${esc(t.value)}`;
+        c.onmouseenter = () => hot(`${ui}-${i}`, true);
+        c.onmouseleave = () => hot(`${ui}-${i}`, false);
+        chips.appendChild(c);
+      });
+      tokensEl.appendChild(chips);
+    });
+
+    // trees
+    treesEl.innerHTML = '';
+    prog.units.forEach(u => {
+      const tag = document.createElement('div');
+      tag.className='lineTag'; tag.textContent = `บรรทัด ${u.line}`;
+      treesEl.appendChild(tag);
+      const pre = document.createElement('pre');
+      pre.textContent = u.ok ? u.tree : '—';
+      treesEl.appendChild(pre);
+    });
+
+    // code
+    importEl.textContent = prog.header;
+    noteEl.textContent = prog.cyclic
+      ? 'พบการอ้างอิงวนกลับ จัดลำดับได้ไม่สมบูรณ์'
+      : (prog.reordered ? 'สลับลำดับบรรทัดให้แล้ว เพื่อให้นิยามมาก่อนการใช้งาน' : '');
+    codeEl.textContent = prog.code || '—';
+  }
+
+  function hot(key, on){
+    const s = preview.querySelector(`[data-k="${key}"]`);
+    if(s) s.classList.toggle('hot', on);
+  }
+
+  $('toggle').onclick = () => {
+    rawMode = !rawMode;
+    $('toggle').textContent = rawMode ? 'ดูสมการ' : 'ดู LaTeX ดิบ';
+    if(last) renderPreview(last);
+  };
+
+  $('tab-py').onclick = () => setTarget('python');
+  $('tab-js').onclick = () => setTarget('js');
+  function setTarget(t){
+    target = t;
+    $('tab-py').setAttribute('aria-selected', t==='python');
+    $('tab-js').setAttribute('aria-selected', t==='js');
+    run();
+  }
+
+  $('copy').onclick = async () => {
+    if(!last) return;
+    try{
+      await navigator.clipboard.writeText(last.header + '\n\n' + last.code);
+      $('copy').textContent='คัดลอกแล้ว';
+      setTimeout(()=>$('copy').textContent='คัดลอกทั้งหมด', 1200);
+    }catch(e){ $('copy').textContent='คัดลอกไม่ได้'; }
+  };
+
+  src.addEventListener('input', run);
+  window.addEventListener('load', () => { if(last) renderPreview(last); });
+  run();
+})();
+</script>
+</body>
+</html>
